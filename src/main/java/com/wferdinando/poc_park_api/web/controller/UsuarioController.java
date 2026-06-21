@@ -22,6 +22,8 @@ import com.wferdinando.poc_park_api.web.dto.UsuarioCreateDTO;
 import com.wferdinando.poc_park_api.web.dto.UsuarioResponseDTO;
 import com.wferdinando.poc_park_api.web.dto.UsuarioSenhaDTO;
 
+import jakarta.validation.Valid;
+
 @RestController
 @RequestMapping("/api/v1/usuarios")
 public class UsuarioController {
@@ -33,7 +35,7 @@ public class UsuarioController {
     }
 
     @PostMapping
-    public ResponseEntity<UsuarioResponseDTO> create(@RequestBody UsuarioCreateDTO usuarioCreateDTO) {
+    public ResponseEntity<UsuarioResponseDTO> create(@Valid @RequestBody UsuarioCreateDTO usuarioCreateDTO) {
         Usuario usuarioSalvo = service.salvar(toUsuario(usuarioCreateDTO));
         return ResponseEntity.status(HttpStatus.CREATED).body(
                 toDTO(usuarioSalvo));
@@ -47,7 +49,7 @@ public class UsuarioController {
 
     @PatchMapping("/{id}")
     public ResponseEntity<Void> updatePassword(@PathVariable(name = "id") Long id,
-            @RequestBody UsuarioSenhaDTO usuarioSenhaDTO) {
+            @Valid @RequestBody UsuarioSenhaDTO usuarioSenhaDTO) {
         service.editarSenha(
                 id,
                 usuarioSenhaDTO.getSenhaAtual(),
