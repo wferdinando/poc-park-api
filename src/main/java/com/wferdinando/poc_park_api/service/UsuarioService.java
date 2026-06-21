@@ -1,5 +1,7 @@
 package com.wferdinando.poc_park_api.service;
 
+import java.util.List;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,10 +29,24 @@ public class UsuarioService {
     }
 
     @Transactional
-    public Usuario editarSenha(Long id, String password) {
+    public Usuario editarSenha(Long id, String senhaAtual, String novaSenha, String confirmaSenha) {
+
+        if (!novaSenha.equals(confirmaSenha)) {
+            throw new RuntimeException("Nova senha não confere com a confirmação de senha!");
+        }
+
         Usuario usuario = buscarPorId(id);
-        usuario.setPassword(password);
+
+        if (!usuario.getPassword().equals(senhaAtual)) {
+            throw new RuntimeException("Sua senha atual está incorreta!");
+        }
+        usuario.setPassword(novaSenha);
         return usuario;
+    }
+
+    @Transactional(readOnly = true)
+    public List<Usuario> buscarTodos() {
+        return repository.findAll();
     }
 
 }
