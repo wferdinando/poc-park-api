@@ -24,9 +24,9 @@ public class ApiExceptionHandler {
             HttpServletRequest request, BindingResult result) {
 
         log.error("Api Error - ", ex);
-        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_CONTENT)
+        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY)
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(new ErrorMessage(request, HttpStatus.UNPROCESSABLE_CONTENT, "Campo(s) inválido(s)!", result));
+                .body(new ErrorMessage(request, HttpStatus.UNPROCESSABLE_ENTITY, "Campo(s) inválido(s)!", result));
     }
 
     @ExceptionHandler(UsernameUniqueViolationException.class)
