@@ -6,6 +6,7 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -14,7 +15,6 @@ import com.wferdinando.poc_park_api.jwt.JwtUserDetailsService;
 import com.wferdinando.poc_park_api.web.dto.UsuarioLoginDTO;
 import com.wferdinando.poc_park_api.web.exception.ErrorMessage;
 
-import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
@@ -34,7 +34,7 @@ public class AuthenticacaoController {
     }
 
     @PostMapping("/auth")
-    public ResponseEntity<?> autenticar(@RequestBody UsuarioLoginDTO dto, HttpServletRequest request) {
+    public ResponseEntity<?> autenticar(@RequestBody @Valid UsuarioLoginDTO dto, HttpServletRequest request) {
         log.info("Processo de autenticação pelo login {}", dto.getUsername());
         try {
             UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(

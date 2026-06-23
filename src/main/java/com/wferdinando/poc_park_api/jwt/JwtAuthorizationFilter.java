@@ -32,12 +32,7 @@ public class JwtAuthorizationFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
         String token = request.getHeader(JWT_AUTHORIZATION);
 
-        String path = request.getServletPath();
-        if (path.equals("/api/v1/auth") || path.equals("/api/v1/usuarios")) {
-            filterChain.doFilter(request, response);
-            return;
-        }
-
+        
         if (token == null || !token.startsWith(JWT_BEARER)) {
             log.info("JWT Token está nulo, vazio ou não iniciado com 'Bearer'.");
             filterChain.doFilter(request, response);
