@@ -14,6 +14,7 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 
+import com.wferdinando.poc_park_api.jwt.JwtAuthenticationEntyPoint;
 import com.wferdinando.poc_park_api.jwt.JwtAuthorizationFilter;
 import com.wferdinando.poc_park_api.jwt.JwtUserDetailsService;
 
@@ -21,6 +22,14 @@ import com.wferdinando.poc_park_api.jwt.JwtUserDetailsService;
 @EnableWebMvc
 @EnableMethodSecurity
 public class SpringSecurityConfig {
+
+    private static final String[] DOCUMENTATION_OPENAPI = {
+            "/docs/index.html",
+            "/docs-park.html", "docs-park/**",
+            "/v3/api-docs/**",
+            "/swagger-ui-custom.html", "/swagger-ui.html", "swagger-ui/**",
+            "**.html", "/webjars/**", "configuration/**", "/swagger-resources/**",
+    };
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http, JwtUserDetailsService jwtUserDetailsService)
@@ -32,11 +41,13 @@ public class SpringSecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.POST, "api/v1/usuarios").permitAll()
                         .requestMatchers(HttpMethod.POST, "api/v1/auth").permitAll()
+                        .requestMatchers(DOCUMENTATION_OPENAPI).permitAll()
                         .anyRequest().authenticated())
                 .sessionManagement(
                         session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .addFilterBefore(
                         jwtAuthorizationFilter(jwtUserDetailsService), UsernamePasswordAuthenticationFilter.class)
+                .exceptionHandling(ex -> ex.authenticationEntryPoint(new JwtAuthenticationEntyPoint()))
                 .build();
     }
 

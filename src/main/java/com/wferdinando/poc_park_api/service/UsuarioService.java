@@ -55,7 +55,8 @@ public class UsuarioService {
             throw new PasswordInvalidException("Sua senha atual está incorreta!");
         }
 
-        usuario.setPassword(encoder.encode(usuario.getPassword()));
+        usuario.setPassword(encoder.encode(novaSenha));
+
         return usuario;
     }
 
