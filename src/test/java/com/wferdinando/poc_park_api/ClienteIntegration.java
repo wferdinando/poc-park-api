@@ -12,6 +12,7 @@ import org.springframework.test.web.reactive.server.WebTestClient;
 
 import com.wferdinando.poc_park_api.web.dto.ClienteCreateDTO;
 import com.wferdinando.poc_park_api.web.dto.ClienteResponseDTO;
+import com.wferdinando.poc_park_api.web.dto.PageableDTO;
 import com.wferdinando.poc_park_api.web.exception.ErrorMessage;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -122,4 +123,139 @@ public class ClienteIntegration {
         assertThat(responseBody.getStatus()).isEqualTo(403);
 
     }
+
+    @Test
+    void buscarCliente_ComIdExistentePeloAdmin_RetornarClienteComStatus200() {
+        ClienteResponseDTO responseBody = webTestClient
+                .get()
+                .uri("/api/v1/clientes/10")
+                .headers(JwtAuthentication.getHeaderAuthorization(webTestClient, "ana@email.com", "123456"))
+                .accept(MediaType.APPLICATION_JSON)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(ClienteResponseDTO.class)
+                .returnResult().getResponseBody();
+
+        assertThat(responseBody).isNotNull();
+        assertThat(responseBody.getId()).isEqualTo(10L);
+    }
+
+    @Test
+    void buscarCliente_ComIdInexistentePeloAdmin_RetornarErrorMessageStatus404() {
+        ErrorMessage responseBody = webTestClient
+                .get()
+                .uri("/api/v1/clientes/100")
+                .headers(JwtAuthentication.getHeaderAuthorization(webTestClient, "ana@email.com", "123456"))
+                .accept(MediaType.APPLICATION_JSON)
+                .exchange()
+                .expectStatus().isNotFound()
+                .expectBody(ErrorMessage.class)
+                .returnResult().getResponseBody();
+
+        assertThat(responseBody).isNotNull();
+        assertThat(responseBody.getStatus()).isEqualTo(404);
+    }
+
+    @Test
+    void buscarCliente_ComIdExistentePeloCliente_RetornarErrorMessageStatus403() {
+        ErrorMessage responseBody = webTestClient
+                .get()
+                .uri("/api/v1/clientes/100")
+                .headers(JwtAuthentication.getHeaderAuthorization(webTestClient, "bob@email.com", "123456"))
+                .accept(MediaType.APPLICATION_JSON)
+                .exchange()
+                .expectStatus().isForbidden()
+                .expectBody(ErrorMessage.class)
+                .returnResult().getResponseBody();
+
+        assertThat(responseBody).isNotNull();
+        assertThat(responseBody.getStatus()).isEqualTo(403);
+    }
+
+    @Test
+    void buscarClientes_ComPaginacaoPeloAdmin_RetornarClientesComStatus200() {
+        PageableDTO responseBody = webTestClient
+                .get()
+                .uri("/api/v1/clientes")
+                .headers(JwtAuthentication.getHeaderAuthorization(webTestClient, "ana@email.com", "123456"))
+                .accept(MediaType.APPLICATION_JSON)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(PageableDTO.class)
+                .returnResult().getResponseBody();
+
+        assertThat(responseBody).isNotNull();
+        assertThat(responseBody.getContent().size()).isEqualTo(2);
+        assertThat(responseBody.getNumber()).isEqualTo(0);
+        assertThat(responseBody.getTotalPages()).isEqualTo(1);
+
+        responseBody = webTestClient
+                .get()
+                .uri("/api/v1/clientes?size=1&page=1")
+                .headers(JwtAuthentication.getHeaderAuthorization(webTestClient, "ana@email.com", "123456"))
+                .accept(MediaType.APPLICATION_JSON)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(PageableDTO.class)
+                .returnResult().getResponseBody();
+
+        assertThat(responseBody).isNotNull();
+        assertThat(responseBody.getContent().size()).isEqualTo(1);
+        assertThat(responseBody.getNumber()).isEqualTo(1);
+        assertThat(responseBody.getTotalPages()).isEqualTo(2);
+    }
+
+    @Test
+    void buscarClientes_ComPaginacaoPeloCliente_RetornarErrorMessageStatus403() {
+        ErrorMessage responseBody = webTestClient
+                .get()
+                .uri("/api/v1/clientes")
+                .headers(JwtAuthentication.getHeaderAuthorization(webTestClient, "bia@email.com", "123456"))
+                .accept(MediaType.APPLICATION_JSON)
+                .exchange()
+                .expectStatus().isForbidden()
+                .expectBody(ErrorMessage.class)
+                .returnResult().getResponseBody();
+
+        assertThat(responseBody).isNotNull();
+        assertThat(responseBody.getStatus()).isEqualTo(403);
+
+    }
+
+    @Test
+    void buscarCliente_ComDadosTokenCliente_RetornarClienteStatus200() {
+        ClienteResponseDTO responseBody = webTestClient
+                .get()
+                .uri("/api/v1/clientes/detalhes")
+                .headers(JwtAuthentication.getHeaderAuthorization(webTestClient, "bia@email.com", "123456"))
+                .accept(MediaType.APPLICATION_JSON)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(ClienteResponseDTO.class)
+                .returnResult().getResponseBody();
+
+        assertThat(responseBody).isNotNull();
+        assertThat(responseBody.getCpf()).isEqualTo("79074426050");
+        assertThat(responseBody.getNome()).isEqualTo("Bianca Silva");
+        assertThat(responseBody.getId()).isEqualTo(10);
+
+    }
+
+    @Test
+    void buscarCliente_ComDadosTokenAdmin_RetornarErrorMessageStatus403() {
+        ErrorMessage responseBody = webTestClient
+                .get()
+                .uri("/api/v1/clientes/detalhes")
+                .headers(JwtAuthentication.getHeaderAuthorization(webTestClient, "ana@email.com", "123456"))
+                .accept(MediaType.APPLICATION_JSON)
+                .exchange()
+                .expectStatus().isForbidden()
+                .expectBody(ErrorMessage.class)
+                .returnResult().getResponseBody();
+
+        assertThat(responseBody).isNotNull();
+        assertThat(responseBody.getStatus()).isEqualTo(403);
+
+    }
+
 }

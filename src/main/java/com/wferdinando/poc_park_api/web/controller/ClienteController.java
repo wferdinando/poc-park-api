@@ -1,9 +1,15 @@
 package com.wferdinando.poc_park_api.web.controller;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -11,17 +17,24 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.wferdinando.poc_park_api.entity.Cliente;
 import com.wferdinando.poc_park_api.jwt.JwtUserDetails;
+import com.wferdinando.poc_park_api.repository.projection.ClienteProjection;
 import com.wferdinando.poc_park_api.service.ClienteService;
 import com.wferdinando.poc_park_api.service.UsuarioService;
 import com.wferdinando.poc_park_api.web.dto.ClienteCreateDTO;
 import com.wferdinando.poc_park_api.web.dto.ClienteResponseDTO;
+import com.wferdinando.poc_park_api.web.dto.PageableDTO;
 import com.wferdinando.poc_park_api.web.dto.mapper.ClienteMapper;
+import com.wferdinando.poc_park_api.web.dto.mapper.PageableMapper;
 import com.wferdinando.poc_park_api.web.exception.ErrorMessage;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.enums.ParameterIn;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 
@@ -30,33 +43,76 @@ import jakarta.validation.Valid;
 @RequestMapping("api/v1/clientes")
 public class ClienteController {
 
-    private final ClienteService clienteService;
-    private final UsuarioService usuarioService;
+	private final ClienteService clienteService;
+	private final UsuarioService usuarioService;
 
-    public ClienteController(ClienteService clienteService, UsuarioService usuarioService) {
-        this.clienteService = clienteService;
-        this.usuarioService = usuarioService;
-    }
+	public ClienteController(ClienteService clienteService, UsuarioService usuarioService) {
+		this.clienteService = clienteService;
+		this.usuarioService = usuarioService;
+	}
 
-    @Operation(summary = "Criar um novo cliente", description = "Recurso para criar um novo cliente vinculado a um usuário cadatrado. "
-            + "Requisição exige um Bearer Token. Acesso restrito a Role='CLIENTE'.", responses = {
-                    @ApiResponse(responseCode = "201", description = "Recurso criado com sucesso!", content = @Content(mediaType = "application/json;charset=UTF-8", schema = @Schema(implementation = ClienteResponseDTO.class))),
-                    @ApiResponse(responseCode = "403", description = "Recurso não permitido para o perdil de ADMIN.", content = @Content(mediaType = "application/json;charset=UTF-8", schema = @Schema(implementation = ErrorMessage.class))),
-                    @ApiResponse(responseCode = "409", description = "Cliente com o CPF informado já possui cadastro no sistema.", content = @Content(mediaType = "application/json;charset=UTF-8", schema = @Schema(implementation = ErrorMessage.class))),
-                    @ApiResponse(responseCode = "422", description = "Recurso não processado. Dados de entrada inválidos!", content = @Content(mediaType = "application/json;charset=UTF-8", schema = @Schema(implementation = ErrorMessage.class)))
-            })
-    @PostMapping
-    @PreAuthorize("hasRole('CLIENTE')")
-    public ResponseEntity<ClienteResponseDTO> create(
-            @RequestBody @Valid ClienteCreateDTO clienteCreateDTO,
-            @AuthenticationPrincipal JwtUserDetails userDetails) {
+	@Operation(summary = "Criar um novo cliente", description = "Recurso para criar um novo cliente vinculado a um usuário cadatrado. "
+			+ "Requisição exige um Bearer Token. Acesso restrito a Role='CLIENTE'.", security = @SecurityRequirement(name = "security"), responses = {
+					@ApiResponse(responseCode = "201", description = "Recurso criado com sucesso!", content = @Content(mediaType = "application/json;charset=UTF-8", schema = @Schema(implementation = ClienteResponseDTO.class))),
+					@ApiResponse(responseCode = "403", description = "Recurso não permitido para o perfil de ADMIN.", content = @Content(mediaType = "application/json;charset=UTF-8", schema = @Schema(implementation = ErrorMessage.class))),
+					@ApiResponse(responseCode = "409", description = "Cliente com o CPF informado já possui cadastro no sistema.", content = @Content(mediaType = "application/json;charset=UTF-8", schema = @Schema(implementation = ErrorMessage.class))),
+					@ApiResponse(responseCode = "422", description = "Recurso não processado. Dados de entrada inválidos!", content = @Content(mediaType = "application/json;charset=UTF-8", schema = @Schema(implementation = ErrorMessage.class)))
+			})
+	@PostMapping
+	@PreAuthorize("hasRole('CLIENTE')")
+	public ResponseEntity<ClienteResponseDTO> create(
+			@RequestBody @Valid ClienteCreateDTO clienteCreateDTO,
+			@AuthenticationPrincipal JwtUserDetails userDetails) {
 
-        Cliente cliente = ClienteMapper.toCliente(clienteCreateDTO);
-        cliente.setUsuario(usuarioService.buscarPorId(userDetails.getId()));
-        clienteService.salvar(cliente);
+		Cliente cliente = ClienteMapper.toCliente(clienteCreateDTO);
+		cliente.setUsuario(usuarioService.buscarPorId(userDetails.getId()));
+		clienteService.salvar(cliente);
 
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ClienteMapper.toDTO(cliente));
-    }
+		return ResponseEntity.status(HttpStatus.CREATED)
+				.body(ClienteMapper.toDTO(cliente));
+	}
+
+	@Operation(summary = "Localizar um cliente", description = "Recurso para localizar um cliente pelo id. "
+			+ "Requisição exige um Bearer Token. Acesso restrito a Role='ADMIN'.", security = @SecurityRequirement(name = "security"), responses = {
+					@ApiResponse(responseCode = "200", description = "Recurso localizado com sucesso!", content = @Content(mediaType = "application/json;charset=UTF-8", schema = @Schema(implementation = ClienteResponseDTO.class))),
+					@ApiResponse(responseCode = "403", description = "Recurso não permitido para o perfil de CLIENTE.", content = @Content(mediaType = "application/json;charset=UTF-8", schema = @Schema(implementation = ErrorMessage.class))),
+					@ApiResponse(responseCode = "404", description = "Cliente não encontrado.", content = @Content(mediaType = "application/json;charset=UTF-8", schema = @Schema(implementation = ErrorMessage.class)))
+			})
+	@GetMapping("/{id}")
+	@PreAuthorize("hasRole('ADMIN')")
+	public ResponseEntity<ClienteResponseDTO> getById(@PathVariable(name = "id") Long id) {
+		Cliente cliente = clienteService.buscarPorId(id);
+		return ResponseEntity.status(HttpStatus.OK).body(ClienteMapper.toDTO(cliente));
+	}
+
+	@Operation(summary = "Recuperar lista de clientes", description = "Recurso para recuperar listagem de clientes. "
+			+ "Requisição exige um Bearer Token. Acesso restrito a Role='ADMIN'.", security = @SecurityRequirement(name = "security"), parameters = {
+					@Parameter(in = ParameterIn.QUERY, name = "page", content = @Content(schema = @Schema(type = "integer", defaultValue = "0")), description = "Representa a página retornada."),
+					@Parameter(in = ParameterIn.QUERY, name = "size", content = @Content(schema = @Schema(type = "integer", defaultValue = "20")), description = "Representa o total de elementos por página."),
+					@Parameter(in = ParameterIn.QUERY, name = "sort", hidden = true, array = @ArraySchema(schema = @Schema(type = "string", defaultValue = "id,asc")), description = "Representa a ordenação dos resultados. Aceita multiplos critérios de ordenação são suportados.")
+			}, responses = {
+					@ApiResponse(responseCode = "200", description = "Recurso recuperado com sucesso!", content = @Content(mediaType = "application/json;charset=UTF-8", schema = @Schema(implementation = ClienteResponseDTO.class))),
+					@ApiResponse(responseCode = "403", description = "Recurso não permitido ao perfil de CLIENTE!", content = @Content(mediaType = "application/json;charset=UTF-8", schema = @Schema(implementation = ErrorMessage.class)))
+			})
+	@GetMapping
+	@PreAuthorize("hasRole('ADMIN')")
+	public ResponseEntity<PageableDTO> getAll(@Parameter(hidden = true) @PageableDefault(size = 5, sort = {
+			"nome" }, direction = Sort.Direction.ASC, page = 0) Pageable pageable) {
+		Page<ClienteProjection> clientes = clienteService.buscarTodos(pageable);
+		return ResponseEntity.ok(PageableMapper.toDTO(clientes));
+	}
+
+	@Operation(summary = "Recuperar dados do cliente autenticado.",
+			   description = "Recupera os dados do cleinte autenticado. "
+			+ "Requisição exige um Bearer Token. Acesso restrito a Role='CLIENTE'.", security = @SecurityRequirement(name = "security"), responses = {
+					@ApiResponse(responseCode = "200", description = "Recurso localizado com sucesso!", content = @Content(mediaType = "application/json;charset=UTF-8", schema = @Schema(implementation = ClienteResponseDTO.class))),
+					@ApiResponse(responseCode = "403", description = "Recurso não permitido para o perfil de ADMIN.", content = @Content(mediaType = "application/json;charset=UTF-8", schema = @Schema(implementation = ErrorMessage.class))),
+			})
+	@GetMapping("/detalhes")
+	@PreAuthorize("hasRole('CLIENTE')")
+	public ResponseEntity<ClienteResponseDTO> getDetalhes(@AuthenticationPrincipal JwtUserDetails userDetails) {
+		Cliente cliente = clienteService.buscarPorUsuarioId(userDetails.getId());
+		return ResponseEntity.ok(ClienteMapper.toDTO(cliente));
+	}
 
 }
