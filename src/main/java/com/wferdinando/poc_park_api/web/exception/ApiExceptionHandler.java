@@ -9,6 +9,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import com.wferdinando.poc_park_api.exception.CodigoUniqueViolationException;
 import com.wferdinando.poc_park_api.exception.CpfUniqueViolationException;
 import com.wferdinando.poc_park_api.exception.EntityNotFoundException;
 import com.wferdinando.poc_park_api.exception.PasswordInvalidException;
@@ -32,7 +33,7 @@ public class ApiExceptionHandler {
 						"Campo(s) inválido(s)!", result));
 	}
 
-	@ExceptionHandler({ UsernameUniqueViolationException.class, CpfUniqueViolationException.class })
+	@ExceptionHandler({ UsernameUniqueViolationException.class, CpfUniqueViolationException.class, CodigoUniqueViolationException.class })
 	public ResponseEntity<ErrorMessage> uniqueViolationException(RuntimeException ex,
 			HttpServletRequest request) {
 
